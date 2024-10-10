@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+    }
+  </style>
+  <script>
+    function draw() {
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // ライン
+      ctx.strokeStyle = "rgb(200, 0, 0)";
+      ctx.beginPath();
+      ctx.moveTo(50, 50);
+      ctx.lineTo(150, 150);
+      ctx.closePath();
+      ctx.stroke();
+
+      // ライン
+      ctx.strokeStyle = "rgb(0, 200, 0)";
+      ctx.beginPath();
+      ctx.moveTo(150, 50);
+      ctx.lineTo(50, 150);
+      ctx.closePath();
+      ctx.stroke();
+
+      // 四角形
+      ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+      ctx.fillRect(200, 50, 100, 100);
+
+      // 四角形枠
+      ctx.strokeStyle = "rgb(0, 0, 200)";
+      ctx.strokeRect(350, 50, 100, 100);
+
+      // 円
+      ctx.fillStyle = "rgba(200, 0, 200, 0.5)";
+      ctx.beginPath();
+      ctx.arc(100, 250, 50, 0, Math.PI * 2, false);
+      ctx.closePath();
+      ctx.fill();
+
+      // 円枠
+      ctx.strokeStyle = "rgb(200, 0, 200)";
+      ctx.beginPath();
+      ctx.arc(250, 250, 50, 0, Math.PI * 2, false);
+      ctx.closePath();
+      ctx.stroke();
+
+      // テキスト
+      ctx.fillStyle = "rgb(0, 0, 0)";
+      ctx.font = "24px sans-serif";
+      ctx.fillText("Lesson1 基本的な図形の描画", 50, 350);
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson1 基本的な図形の描画</title>
+  </head>
+  <body onload="draw()">
+    <canvas id="canvas" width="500" height="500"></canvas>
+  </body>
+</html>

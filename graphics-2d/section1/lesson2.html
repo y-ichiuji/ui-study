@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+      display: block;
+    }
+
+    #clear-button {
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+  <script>
+    let canvas;
+    let ctx;
+    let isDrawing = false;
+    let prevX = -1;
+    let prevY = -1;
+
+    function init() {
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
+      ctx.strokeStyle = "rgb(0, 0, 0)";
+
+      canvas.addEventListener("mousedown", onMouseDown);
+      canvas.addEventListener("mouseup", onMouseUp);
+      canvas.addEventListener("mousemove", onMouseMove);
+    }
+    function onMouseDown() {
+      isDrawing = true;
+    }
+
+    function onMouseUp() {
+      isDrawing = false;
+      prevX = -1;
+      prevY = -1;
+    }
+
+    function onMouseMove(event) {
+      if (!isDrawing) {
+        return;
+      }
+
+      if (prevX === -1 || prevY === -1) {
+        prevX = event.offsetX;
+        prevY = event.offsetY;
+        return;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(prevX, prevY);
+      ctx.lineTo(event.offsetX, event.offsetY);
+      ctx.closePath();
+      ctx.stroke();
+
+      prevX = event.offsetX;
+      prevY = event.offsetY;
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson2 マウス & タッチイベント</title>
+  </head>
+  <body onload="init()">
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <button id="clear-button" type="button" onclick="clearCanvas()">
+      クリア
+    </button>
+  </body>
+</html>
