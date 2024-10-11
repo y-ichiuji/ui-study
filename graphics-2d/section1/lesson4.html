@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+      display: block;
+    }
+
+    #clear-button {
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+  <script>
+    let canvas;
+    let ctx;
+    let isDrawing = false;
+    let prevX = -1;
+    let prevY = -1;
+    let objects = [];
+    let mode = "rect";
+
+    function init() {
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
+
+      canvas.addEventListener("mousedown", onMouseDown);
+      canvas.addEventListener("mouseup", onMouseUp);
+      canvas.addEventListener("mousemove", onMouseMove);
+    }
+
+    function onMouseDown(event) {
+      prevX = event.offsetX;
+      prevY = event.offsetY;
+      isDrawing = true;
+    }
+
+    function onMouseUp(event) {
+      isDrawing = false;
+      objects.push({
+        x: prevX,
+        y: prevY,
+        width: event.offsetX - prevX,
+        height: event.offsetY - prevY,
+        mode: mode,
+      });
+      drawObjects();
+
+      prevX = -1;
+      prevY = -1;
+    }
+
+    function onMouseMove(event) {
+      if (!isDrawing) {
+        return;
+      }
+
+      if (prevX === -1 || prevY === -1) {
+        prevX = event.offsetX;
+        prevY = event.offsetY;
+        return;
+      }
+
+      drawObjects();
+      drawObject(
+        prevX,
+        prevY,
+        event.offsetX - prevX,
+        event.offsetY - prevY,
+        mode
+      );
+    }
+
+    function drawObjects() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const object of objects) {
+        drawObject(
+          object.x,
+          object.y,
+          object.width,
+          object.height,
+          object.mode
+        );
+      }
+    }
+
+    function drawObject(x, y, width, height, mode) {
+      if (mode === "rect") {
+        drawRect(x, y, width, height);
+      } else if (mode === "circle") {
+        drawCircle(x, y, width, height);
+      }
+    }
+
+    function drawRect(x, y, width, height) {
+      ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+      ctx.fillRect(x, y, width, height);
+    }
+
+    function drawCircle(x, y, width, height) {
+      ctx.fillStyle = "rgba(0, 200, 0, 0.5)";
+      const radius = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2), 2);
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      objects = [];
+    }
+
+    function changeMode(newMode) {
+      mode = newMode;
+
+      const rectButton = document.getElementById("rect-button");
+      const circleButton = document.getElementById("circle-button");
+      if (mode === "rect") {
+        rectButton.disabled = true;
+        circleButton.disabled = false;
+      } else if (mode === "circle") {
+        rectButton.disabled = false;
+        circleButton.disabled = true;
+      }
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson4 ペイントツール</title>
+  </head>
+  <body onload="init()">
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <div>
+      <labe>Mode: </labe>
+      <button
+        id="rect-button"
+        type="button"
+        disabled
+        onClick="changeMode('rect')"
+      >
+        四角形
+      </button>
+      <button id="circle-button" type="button" onClick="changeMode('circle')">
+        円
+      </button>
+    </div>
+    <button id="clear-button" type="button" onclick="clearCanvas()">
+      クリア
+    </button>
+  </body>
+</html>
