@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+      display: block;
+    }
+
+    #clear-button {
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+  <script>
+    let canvas;
+    let ctx;
+    let isDrawing = false;
+    let rects = [];
+
+    function init() {
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
+      ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+
+      canvas.addEventListener("mousedown", onMouseDown);
+      canvas.addEventListener("mouseup", onMouseUp);
+      canvas.addEventListener("mousemove", onMouseMove);
+    }
+
+    function onMouseDown() {
+      isDrawing = true;
+      rects.push({
+        x: event.offsetX,
+        y: event.offsetY,
+        width: 0,
+        height: 0,
+      });
+    }
+
+    function onMouseUp() {
+      isDrawing = false;
+    }
+
+    function onMouseMove(event) {
+      if (!isDrawing) {
+        return;
+      }
+
+      const rect = rects[rects.length - 1];
+      rect.width = event.offsetX - rect.x;
+      rect.height = event.offsetY - rect.y;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawRects();
+    }
+
+    function drawRects() {
+      for (const rect of rects) {
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+      }
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      rects = [];
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson3 図形描画</title>
+  </head>
+  <body onload="init()">
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <button id="clear-button" type="button" onclick="clearCanvas()">
+      クリア
+    </button>
+  </body>
+</html>
