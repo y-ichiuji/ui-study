@@ -34,7 +34,7 @@
     let objects = [];
     let shape = "rect";
 
-    function init() {
+    const init = () => {
       canvas = document.getElementById("canvas");
       ctx = canvas.getContext("2d");
       colorElement = document.getElementById("color");
@@ -42,15 +42,15 @@
       canvas.addEventListener("mousedown", onMouseDown);
       canvas.addEventListener("mouseup", onMouseUp);
       canvas.addEventListener("mousemove", onMouseMove);
-    }
+    };
 
-    function onMouseDown(event) {
+    const onMouseDown = (event) => {
       prevX = event.offsetX;
       prevY = event.offsetY;
       isDrawing = true;
-    }
+    };
 
-    function onMouseUp(event) {
+    const onMouseUp = (event) => {
       isDrawing = false;
       objects.push({
         x: prevX,
@@ -64,9 +64,9 @@
 
       prevX = -1;
       prevY = -1;
-    }
+    };
 
-    function onMouseMove(event) {
+    const onMouseMove = (event) => {
       if (!isDrawing) {
         return;
       }
@@ -86,9 +86,9 @@
         shape,
         colorElement.value
       );
-    }
+    };
 
-    function drawObjects() {
+    const drawObjects = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (const object of objects) {
         drawObject(
@@ -100,36 +100,36 @@
           object.color
         );
       }
-    }
+    };
 
-    function drawObject(x, y, width, height, shape, color) {
+    const drawObject = (x, y, width, height, shape, color) => {
       if (shape === "rect") {
         drawRect(x, y, width, height, color);
       } else if (shape === "circle") {
         drawCircle(x, y, width, height, color);
       }
-    }
+    };
 
-    function drawRect(x, y, width, height, color) {
+    const drawRect = (x, y, width, height, color) => {
       ctx.fillStyle = color;
       ctx.fillRect(x, y, width, height);
-    }
+    };
 
-    function drawCircle(x, y, width, height) {
+    const drawCircle = (x, y, width, height) => {
       ctx.fillStyle = color;
       const radius = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2), 2);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2, false);
       ctx.closePath();
       ctx.fill();
-    }
+    };
 
-    function clearCanvas() {
+    const clearCanvas = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       objects = [];
-    }
+    };
 
-    function changeShape(newShape) {
+    const changeShape = (newShape) => {
       shape = newShape;
 
       const rectButton = document.getElementById("rect-button");
@@ -141,7 +141,7 @@
         rectButton.disabled = false;
         circleButton.disabled = true;
       }
-    }
+    };
   </script>
   <head>
     <meta charset="UTF-8" />
