@@ -1,28 +1,43 @@
 <!DOCTYPE html>
 <html lang="ja">
   <style>
+    .container {
+      display: flex;
+      flex-direction: column;
+      margin-top: 1rem;
+      gap: 1rem;
+    }
+
     #canvas {
       border: 1px solid #000;
       display: block;
     }
 
+    .label {
+      display: inline-block;
+      width: 5rem;
+      width: fit-content;
+    }
+
     #clear-button {
-      display: block;
-      margin-top: 10px;
+      width: fit-content;
     }
   </style>
   <script>
-    let canvas;
-    let ctx;
+    let canvas = null;
+    let ctx = null;
+    let colorElement = null;
+
     let isDrawing = false;
     let prevX = -1;
     let prevY = -1;
     let objects = [];
-    let mode = "rect";
+    let shape = "rect";
 
     function init() {
       canvas = document.getElementById("canvas");
       ctx = canvas.getContext("2d");
+      colorElement = document.getElementById("color");
 
       canvas.addEventListener("mousedown", onMouseDown);
       canvas.addEventListener("mouseup", onMouseUp);
@@ -42,7 +57,8 @@
         y: prevY,
         width: event.offsetX - prevX,
         height: event.offsetY - prevY,
-        mode: mode,
+        shape,
+        color: colorElement.value,
       });
       drawObjects();
 
@@ -67,7 +83,8 @@
         prevY,
         event.offsetX - prevX,
         event.offsetY - prevY,
-        mode
+        shape,
+        colorElement.value
       );
     }
 
@@ -79,26 +96,27 @@
           object.y,
           object.width,
           object.height,
-          object.mode
+          object.shape,
+          object.color
         );
       }
     }
 
-    function drawObject(x, y, width, height, mode) {
-      if (mode === "rect") {
-        drawRect(x, y, width, height);
-      } else if (mode === "circle") {
-        drawCircle(x, y, width, height);
+    function drawObject(x, y, width, height, shape, color) {
+      if (shape === "rect") {
+        drawRect(x, y, width, height, color);
+      } else if (shape === "circle") {
+        drawCircle(x, y, width, height, color);
       }
     }
 
-    function drawRect(x, y, width, height) {
-      ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+    function drawRect(x, y, width, height, color) {
+      ctx.fillStyle = color;
       ctx.fillRect(x, y, width, height);
     }
 
     function drawCircle(x, y, width, height) {
-      ctx.fillStyle = "rgba(0, 200, 0, 0.5)";
+      ctx.fillStyle = color;
       const radius = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2), 2);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2, false);
@@ -111,15 +129,15 @@
       objects = [];
     }
 
-    function changeMode(newMode) {
-      mode = newMode;
+    function changeShape(newShape) {
+      shape = newShape;
 
       const rectButton = document.getElementById("rect-button");
       const circleButton = document.getElementById("circle-button");
-      if (mode === "rect") {
+      if (shape === "rect") {
         rectButton.disabled = true;
         circleButton.disabled = false;
-      } else if (mode === "circle") {
+      } else if (shape === "circle") {
         rectButton.disabled = false;
         circleButton.disabled = true;
       }
@@ -132,22 +150,32 @@
   </head>
   <body onload="init()">
     <canvas id="canvas" width="500" height="500"></canvas>
-    <div>
-      <labe>Mode: </labe>
-      <button
-        id="rect-button"
-        type="button"
-        disabled
-        onClick="changeMode('rect')"
-      >
-        四角形
-      </button>
-      <button id="circle-button" type="button" onClick="changeMode('circle')">
-        円
+    <div class="container">
+      <div>
+        <label class="label">形を選択:</label>
+        <button
+          id="rect-button"
+          type="button"
+          disabled
+          onClick="changeShape('rect')"
+        >
+          四角形
+        </button>
+        <button
+          id="circle-button"
+          type="button"
+          onClick="changeShape('circle')"
+        >
+          円
+        </button>
+      </div>
+      <div>
+        <label class="label">色を選択:</label>
+        <input type="color" id="color" value="#ff0000" />
+      </div>
+      <button id="clear-button" type="button" onclick="clearCanvas()">
+        クリア
       </button>
     </div>
-    <button id="clear-button" type="button" onclick="clearCanvas()">
-      クリア
-    </button>
   </body>
 </html>
