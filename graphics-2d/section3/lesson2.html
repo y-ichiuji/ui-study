@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+    }
+  </style>
+  <script>
+    const SCALE_H_LINE_POS_Y = 60;
+    const SCALE_H_LINE_HEIGHT = 4;
+    const SCALE_V_LONG_LINE_POS_Y = 50;
+    const SCALE_V_LONG_LINE_HEIGHT = 25;
+    const SCALE_V_SHORT_LINE_POS_Y = 60;
+    const SCALE_V_SHORT_LINE_HEIGHT = 10;
+    const SCALE_TEXT_POS_Y = 86;
+    const SCALE_TEXT_FONT_SIZE = 12;
+
+    const CENTER_TRIANGLE_HEIGHT = 15;
+    const CENTER_TRIANGLE_WIDTH = 20;
+    const CENTER_TEXT_FONT_SIZE = 20;
+
+    const CANVAS_WIDTH = 600;
+    const CANVAS_HEIGHT = 100;
+
+    const CURRENT_TIME_COLOR = "rgb(255, 127, 127)";
+    const DEFAULT_COLOR = "rgb(0, 0, 0)";
+
+    function init() {
+      draw();
+      setInterval(draw, 1000);
+    }
+
+    function draw() {
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      clearCanvas(ctx);
+
+      drawScaleHLine(ctx);
+
+      const currentTimeMs = Date.now();
+      drawCurrentTime(ctx, currentTimeMs);
+    }
+
+    function drawScaleHLine(ctx) {
+      ctx.strokeStyle = DEFAULT_COLOR;
+      ctx.lineWidth = SCALE_H_LINE_HEIGHT;
+      ctx.beginPath();
+      ctx.moveTo(0, SCALE_H_LINE_POS_Y);
+      ctx.lineTo(CANVAS_WIDTH, SCALE_H_LINE_POS_Y);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+
+    function drawCurrentTime(ctx, currentTimeMs) {
+      ctx.strokeStyle = CURRENT_TIME_COLOR;
+      ctx.fillStyle = CURRENT_TIME_COLOR;
+
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_WIDTH / 2, 0);
+      ctx.lineTo(CANVAS_WIDTH / 2, SCALE_H_LINE_POS_Y);
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(CANVAS_WIDTH / 2, SCALE_H_LINE_POS_Y - CENTER_TRIANGLE_HEIGHT);
+      ctx.lineTo(
+        CANVAS_WIDTH / 2 - CENTER_TRIANGLE_WIDTH / 2,
+        SCALE_H_LINE_POS_Y
+      );
+      ctx.lineTo(
+        CANVAS_WIDTH / 2 + CENTER_TRIANGLE_WIDTH / 2,
+        SCALE_H_LINE_POS_Y
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = `${CENTER_TEXT_FONT_SIZE}px sans-serif`;
+      ctx.fillText(
+        new Date(currentTimeMs).toLocaleTimeString("ja-JP"),
+        CANVAS_WIDTH / 2 - 40,
+        CENTER_TRIANGLE_HEIGHT + 20
+      );
+    }
+
+    function pos2Time(pos, currentTimeMs, canvasWidth = CANVAS_WIDTH) {
+      const leftEndTimeMs = currentTimeMs - (canvasWidth / 2) * TIME_MS_PER_PIX;
+      return pos * TIME_MS_PER_PIX + leftEndTimeMs;
+    }
+
+    function time2Pos(timeMs, currentTimeMs, canvasWidth = CANVAS_WIDTH) {
+      const leftEndTimeMs = currentTimeMs - (canvasWidth / 2) * TIME_MS_PER_PIX;
+      return (timeMs - leftEndTimeMs) / TIME_MS_PER_PIX;
+    }
+
+    function getCanvasWidth() {
+      return CANVAS_WIDTH;
+    }
+
+    function getCanvasHeight() {
+      return CANVAS_HEIGHT;
+    }
+
+    function clearCanvas(ctx) {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson2 座標変換</title>
+  </head>
+  <body onload="init()">
+    <canvas id="canvas" width="600" height="100"></canvas>
+  </body>
+</html>

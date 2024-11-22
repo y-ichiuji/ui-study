@@ -28,11 +28,13 @@
     let ctx = null;
     let colorElement = null;
 
-    let isDrawing = false;
+    let isMouseDown = false;
     let prevX = -1;
     let prevY = -1;
     let objects = [];
     let shape = "rect";
+    let hoveredObjectIndex = -1;
+    let selectedObjectIndex = -1;
 
     const init = () => {
       canvas = document.getElementById("canvas");
@@ -42,16 +44,31 @@
       canvas.addEventListener("mousedown", onMouseDown);
       canvas.addEventListener("mouseup", onMouseUp);
       canvas.addEventListener("mousemove", onMouseMove);
+      canvas.addEventListener("click", onClick);
     };
 
     const onMouseDown = (event) => {
       prevX = event.offsetX;
       prevY = event.offsetY;
-      isDrawing = true;
+      isMouseDown = true;
     };
 
     const onMouseUp = (event) => {
-      isDrawing = false;
+      isMouseDown = false;
+      if (
+        (shape === "rect" &&
+          (event.offsetX - prevX === 0 || event.offsetY - prevY === 0)) ||
+        (shape === "circle" &&
+          event.offsetX - prevX === 0 &&
+          event.offsetY - prevY === 0) ||
+        prevX <= -1 ||
+        prevY <= -1 ||
+        event.offsetX >= canvas.width ||
+        event.offsetY >= canvas.height
+      ) {
+        return;
+      }
+
       objects.push({
         x: prevX,
         y: prevY,
@@ -60,6 +77,7 @@
         shape,
         color: colorElement.value,
       });
+      selectedObjectIndex = objects.length - 1;
       drawObjects();
 
       prevX = -1;
@@ -67,7 +85,17 @@
     };
 
     const onMouseMove = (event) => {
-      if (!isDrawing) {
+      hoveredObjectIndex = searchHoveredObjectIndex(event);
+      let editable = false;
+
+      if (hoveredObjectIndex !== -1) {
+        canvas.style.cursor = "pointer";
+        editable = true;
+      } else {
+        canvas.style.cursor = "default";
+      }
+
+      if (!isMouseDown) {
         return;
       }
 
@@ -84,21 +112,45 @@
         event.offsetX - prevX,
         event.offsetY - prevY,
         shape,
-        colorElement.value
+        colorElement.value,
+        true
       );
+      if (shape === "rect") {
+        drawRectBorder(
+          prevX,
+          prevY,
+          event.offsetX - prevX,
+          event.offsetY - prevY
+        );
+      } else if (shape === "circle") {
+        drawCircleBorder(
+          prevX,
+          prevY,
+          event.offsetX - prevX,
+          event.offsetY - prevY
+        );
+      }
+    };
+
+    const onClick = (event) => {
+      selectedObjectIndex = searchHoveredObjectIndex(event);
+      drawObjects();
     };
 
     const drawObjects = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const object of objects) {
+      for (let i = 0; i < objects.length; i++) {
         drawObject(
-          object.x,
-          object.y,
-          object.width,
-          object.height,
-          object.shape,
-          object.color
+          objects[i].x,
+          objects[i].y,
+          objects[i].width,
+          objects[i].height,
+          objects[i].shape,
+          objects[i].color
         );
+      }
+      if (selectedObjectIndex !== -1) {
+        drawSelectedObjectBorder();
       }
     };
 
@@ -115,13 +167,48 @@
       ctx.fillRect(x, y, width, height);
     };
 
-    const drawCircle = (x, y, width, height) => {
+    const drawCircle = (x, y, width, height, color) => {
       ctx.fillStyle = color;
       const radius = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2), 2);
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2, false);
-      ctx.closePath();
       ctx.fill();
+      ctx.closePath();
+    };
+
+    const drawSelectedObjectBorder = () => {
+      const object = objects[selectedObjectIndex];
+      if (object.shape === "rect") {
+        drawRectBorder(
+          object.x,
+          object.y,
+          object.width,
+          object.height,
+          object.color === "#000" ? "#333" : "#000"
+        );
+      } else if (object.shape === "circle") {
+        drawCircleBorder(
+          object.x,
+          object.y,
+          object.width,
+          object.height,
+          object.color === "#000" ? "#333" : "#000"
+        );
+      }
+    };
+
+    const drawRectBorder = (x, y, width, height, color) => {
+      ctx.strokeStyle = color;
+      ctx.strokeRect(x, y, width, height);
+    };
+
+    const drawCircleBorder = (x, y, width, height, color) => {
+      const radius = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2), 2);
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+      ctx.stroke();
+      ctx.closePath();
     };
 
     const clearCanvas = () => {
@@ -141,6 +228,38 @@
         rectButton.disabled = false;
         circleButton.disabled = true;
       }
+    };
+
+    const searchHoveredObjectIndex = (event) => {
+      for (let i = objects.length - 1; i >= 0; i--) {
+        const object = objects[i];
+        if (
+          (object.shape === "rect" &&
+            (object.width >= 0
+              ? object.x <= event.offsetX &&
+                event.offsetX <= object.x + object.width
+              : object.x >= event.offsetX &&
+                event.offsetX >= object.x + object.width) &&
+            (object.height >= 0
+              ? object.y <= event.offsetY &&
+                event.offsetY <= object.y + object.height
+              : object.y >= event.offsetY &&
+                event.offsetY >= object.y + object.height)) ||
+          (object.shape === "circle" &&
+            Math.pow(event.offsetX - object.x, 2) +
+              Math.pow(event.offsetY - object.y, 2) <=
+              Math.pow(
+                Math.sqrt(
+                  Math.pow(object.width, 2) + Math.pow(object.height, 2),
+                  2
+                ),
+                2
+              ))
+        ) {
+          return i;
+        }
+      }
+      return -1;
     };
   </script>
   <head>

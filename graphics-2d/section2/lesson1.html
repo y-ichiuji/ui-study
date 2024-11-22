@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+    }
+  </style>
+  <script>
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 500;
+
+    async function init() {
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+
+      const res = await fetch("./land.json");
+      /**
+       * @type {{
+       *   features: {
+       *     geometry: {
+       *       coordinates: number[][][];
+       *     };
+       *   }[];
+       * }}
+       */
+      const data = await res.json();
+      const features = data.features.map((feature) => ({
+        geometries: feature.geometry.coordinates[0].map((coordinates) => ({
+          lng: coordinates[0],
+          lat: coordinates[1],
+        })),
+      }));
+
+      features.forEach((feature) => {
+        ctx.beginPath();
+        feature.geometries.forEach((geometry, index) => {
+          const { x, y } = coordinates2xy(geometry.lng, geometry.lat);
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.closePath();
+        ctx.stroke();
+      });
+    }
+
+    function coordinates2xy(lng, lat) {
+      const x = (lng + 180) * (CANVAS_WIDTH / 360);
+      const y = (-1 * lat + 90) * (CANVAS_HEIGHT / 180);
+      return { x, y };
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson1 地形データ</title>
+  </head>
+  <body onload="init()">
+    <h1>Lesson1 地形データ</h1>
+    <div>世界地図を書きます</div>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>
