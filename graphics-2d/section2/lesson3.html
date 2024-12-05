@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+    }
+  </style>
+  <script>
+    // @ts-check
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 500;
+
+    let canvas = null;
+    let ctx = null;
+    let features = [];
+    let isMouseDown = false;
+    let mousePosX = 0;
+    let mousePosY = 0;
+    let mapOffsetX = 0;
+    let mapOffsetY = 0;
+    let zoom = 1;
+
+    async function init() {
+      initializeCanvas();
+      features = await fetchFeatures();
+      draw();
+      canvas.addEventListener("mousedown", mouseDown);
+      canvas.addEventListener("mouseup", mouseUp);
+      canvas.addEventListener("mousemove", mouseMove);
+      canvas.addEventListener("wheel", wheel);
+    }
+
+    function initializeCanvas() {
+      canvas = document.getElementById("canvas");
+      if (canvas === null || !(canvas instanceof HTMLCanvasElement)) {
+        throw new Error("canvasが取得できません");
+      }
+      ctx = canvas.getContext("2d");
+      if (ctx === null) {
+        throw new Error("2dコンテキストが取得できません");
+      }
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+    }
+
+    async function fetchFeatures() {
+      const res = await fetch("./land.json");
+      /**
+       * @type {{
+       *   features: {
+       *     geometry: {
+       *       coordinates: number[][][];
+       *     };
+       *   }[];
+       * }}
+       */
+      const data = await res.json();
+      const features = data.features.map((feature) => ({
+        geometries: feature.geometry.coordinates[0].map((coordinates) => ({
+          lng: coordinates[0],
+          lat: coordinates[1],
+        })),
+      }));
+      return features;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      features.forEach((feature) => {
+        ctx.beginPath();
+        feature.geometries.forEach((geometry, index) => {
+          const { x, y } = coordinates2xy(geometry.lng, geometry.lat);
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.closePath();
+        ctx.stroke();
+      });
+    }
+
+    function coordinates2xy(lng, lat) {
+      const x = zoom * ((lng + 180) * (CANVAS_WIDTH / 360) + mapOffsetX);
+      const y = zoom * ((-1 * lat + 90) * (CANVAS_HEIGHT / 180) + mapOffsetY);
+      return { x, y };
+    }
+
+    function mouseDown(event) {
+      isMouseDown = true;
+      mousePosX = event.offsetX;
+      mousePosY = event.offsetY;
+    }
+
+    function mouseUp(event) {
+      isMouseDown = false;
+    }
+
+    function mouseMove(event) {
+      const offsetX = event.offsetX;
+      const offsetY = event.offsetY;
+      if (isMouseDown) {
+        mapOffsetX += (offsetX - mousePosX) / zoom;
+        mapOffsetY += (offsetY - mousePosY) / zoom;
+        draw();
+      }
+      mousePosX = offsetX;
+      mousePosY = offsetY;
+    }
+
+    function wheel(event) {
+      const prevZoom = zoom;
+      let nextZoom = zoom;
+      if (event.deltaY < 0) {
+        nextZoom *= 1.1;
+      } else {
+        nextZoom *= 0.9;
+      }
+      zoom = Math.min(Math.max(nextZoom, 1), 250);
+      mapOffsetX += (1 / zoom - 1 / prevZoom) * mousePosX;
+      mapOffsetY += (1 / zoom - 1 / prevZoom) * mousePosY;
+      draw();
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson3 拡大縮小</title>
+  </head>
+  <body onload="init()">
+    <h1>Lesson3 拡大縮小</h1>
+    <div>マウスホイールを使った地図の拡大/縮小します</div>
+    <canvas id="canvas"></canvas>
+  </body>
+</html>

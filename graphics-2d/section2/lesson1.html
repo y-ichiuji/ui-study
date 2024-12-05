@@ -6,12 +6,12 @@
     }
   </style>
   <script>
+    // @ts-check
     const CANVAS_WIDTH = 800;
     const CANVAS_HEIGHT = 500;
 
     async function init() {
-      const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
+      const { canvas, ctx } = getCanvasAndContext();
       canvas.width = CANVAS_WIDTH;
       canvas.height = CANVAS_HEIGHT;
 
@@ -46,6 +46,18 @@
         ctx.closePath();
         ctx.stroke();
       });
+    }
+
+    function getCanvasAndContext() {
+      const canvas = document.getElementById("canvas");
+      if (canvas === null || !(canvas instanceof HTMLCanvasElement)) {
+        throw new Error("canvasが取得できません");
+      }
+      const ctx = canvas.getContext("2d");
+      if (ctx === null) {
+        throw new Error("2dコンテキストが取得できません");
+      }
+      return { canvas, ctx };
     }
 
     function coordinates2xy(lng, lat) {
