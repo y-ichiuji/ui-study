@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+    }
+  </style>
+  <script>
+    // @ts-check
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 500;
+    const MAX_ZOOM = 10000;
+
+    let canvas = null;
+    let ctx = null;
+
+    let landFeatures = [];
+    let highwaySectionFeatures = [];
+    let highwayJointFeatures = [];
+
+    let isMouseDown = false;
+    let mousePosX = 0;
+    let mousePosY = 0;
+
+    // 日本地図をいい感じに表示するためのオフセット
+    let mapOffsetX = -668.0164634096519;
+    let mapOffsetY = -120.91786187048017;
+    let zoom = 10.990045899316044;
+
+    async function init() {
+      initializeCanvas();
+      await fetchLandFeatures();
+      await fetchHighwaySectionFeatures();
+      await fetchHighwayJointFeatures();
+      initialDraw();
+      canvas.addEventListener("mousedown", mouseDown);
+      canvas.addEventListener("mouseup", mouseUp);
+      canvas.addEventListener("mousemove", mouseMove);
+      canvas.addEventListener("wheel", wheel);
+    }
+
+    function initializeCanvas() {
+      canvas = document.getElementById("canvas");
+      if (canvas === null || !(canvas instanceof HTMLCanvasElement)) {
+        throw new Error("canvasが取得できません");
+      }
+      ctx = canvas.getContext("2d");
+      if (ctx === null) {
+        throw new Error("2dコンテキストが取得できません");
+      }
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+      canvas.style.visibility = "visible";
+    }
+
+    async function fetchLandFeatures() {
+      const res = await fetch("./land.json");
+      /**
+       * @type {{
+       *   features: {
+       *     geometry: {
+       *       type: string;
+       *       coordinates: number[][][];
+       *     };
+       *   }[];
+       * }}
+       */
+      const data = await res.json();
+      landFeatures = data.features.map((feature) => ({
+        geometries: feature.geometry.coordinates[0].map((coordinates) => ({
+          lng: coordinates[0],
+          lat: coordinates[1],
+        })),
+      }));
+    }
+
+    async function fetchHighwaySectionFeatures() {
+      const res = await fetch("./N06-20_HighwaySection.geojson");
+      /**
+       * @type {{
+       *   features: {
+       *     properties: {
+       *       N06_007: string;
+       *     };
+       *     geometry: {
+       *       type: string;
+       *       coordinates: number[][];
+       *     };
+       *   }[];
+       * }}
+       */
+      const data = await res.json();
+      highwaySectionFeatures = data.features.map((feature) => {
+        const geometries = feature.geometry.coordinates.map((coordinates) => ({
+          lng: coordinates[0],
+          lat: coordinates[1],
+        }));
+        return {
+          geometries,
+          name: feature.properties.N06_007,
+        };
+      });
+    }
+
+    async function fetchHighwayJointFeatures() {
+      const res = await fetch("./N06-20_Joint.geojson");
+      /**
+       * @type {{
+       *   features: {
+       *     properties: {
+       *       N06_007: string;
+       *     };
+       *     geometry: {
+       *       type: string;
+       *       coordinates: number[];
+       *     };
+       *   }[];
+       * }}
+       */
+      const data = await res.json();
+      highwayJointFeatures = data.features.map((feature) => {
+        const geometry = feature.geometry.coordinates;
+        return {
+          lng: geometry[0],
+          lat: geometry[1],
+          name: feature.properties.N06_007,
+        };
+      });
+      console.log(highwayJointFeatures);
+    }
+
+    function draw() {
+      drawLines();
+      drawPoints();
+    }
+
+    function drawLines() {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      const featuresList = [landFeatures, highwaySectionFeatures];
+      featuresList.forEach((features) => {
+        features.forEach((feature) => {
+          ctx.beginPath();
+          feature.geometries.forEach((geometry, index) => {
+            const { x, y } = coordinates2xy(geometry.lng, geometry.lat);
+            if (index === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+          ctx.closePath();
+          ctx.stroke();
+        });
+      });
+    }
+
+    function drawPoints() {
+      const featuresList = [highwayJointFeatures];
+      featuresList.forEach((features) => {
+        features.forEach((feature) => {
+          const { x, y } = coordinates2xy(feature.lng, feature.lat);
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2, false);
+          ctx.stroke();
+          ctx.closePath();
+        });
+      });
+    }
+
+    function coordinates2xy(lng, lat) {
+      const x = zoom * ((lng + 180) * (CANVAS_WIDTH / 360) + mapOffsetX);
+      const y = zoom * ((-1 * lat + 90) * (CANVAS_HEIGHT / 180) + mapOffsetY);
+      return { x, y };
+    }
+
+    function mouseDown(event) {
+      isMouseDown = true;
+      mousePosX = event.offsetX;
+      mousePosY = event.offsetY;
+    }
+
+    function mouseUp(event) {
+      isMouseDown = false;
+    }
+
+    function mouseMove(event) {
+      const offsetX = event.offsetX;
+      const offsetY = event.offsetY;
+      if (isMouseDown) {
+        mapOffsetX += (offsetX - mousePosX) / zoom;
+        mapOffsetY += (offsetY - mousePosY) / zoom;
+        draw();
+      }
+      mousePosX = offsetX;
+      mousePosY = offsetY;
+    }
+
+    function wheel(event) {
+      const prevZoom = zoom;
+      let nextZoom = zoom;
+      if (event.deltaY < 0) {
+        nextZoom *= 1.1;
+      } else {
+        nextZoom *= 0.9;
+      }
+      zoom = Math.min(Math.max(nextZoom, 1), MAX_ZOOM);
+      mapOffsetX += (1 / zoom - 1 / prevZoom) * mousePosX;
+      mapOffsetY += (1 / zoom - 1 / prevZoom) * mousePosY;
+      draw();
+    }
+
+    function initialDraw() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { longitude, latitude } = position.coords;
+            zoom = 150;
+            mapOffsetX = -(
+              (longitude + 180) * (CANVAS_WIDTH / 360) -
+              CANVAS_WIDTH / 2 / zoom
+            );
+            mapOffsetY = -(
+              (-1 * latitude + 90) * (CANVAS_HEIGHT / 180) -
+              CANVAS_HEIGHT / 2 / zoom
+            );
+            draw();
+          },
+          () => {
+            draw();
+          }
+        );
+      } else {
+        draw();
+      }
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson4 課題 | 高速道路</title>
+  </head>
+  <body onload="init()">
+    <h1>Lesson4 課題 | 高速道路</h1>
+    <div>高速道路情報を表示します</div>
+    <canvas id="canvas" style="visibility: hidden"></canvas>
+  </body>
+</html>
