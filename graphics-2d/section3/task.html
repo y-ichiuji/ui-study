@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <style>
+    #canvas {
+      border: 1px solid #000;
+    }
+  </style>
+  <script>
+    // @ts-check
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 500;
+    const MARGIN_PX = 20;
+    const LABEL_Y_WIDTH_PX = 40;
+    const LABEL_X_HEIGHT_PX = 15;
+    const FRAME_WIDTH = CANVAS_WIDTH - MARGIN_PX * 2 - LABEL_Y_WIDTH_PX;
+    const FRAME_HEIGHT = CANVAS_HEIGHT - MARGIN_PX * 2 - LABEL_X_HEIGHT_PX;
+    const FRAME_OFFSET_X = MARGIN_PX + LABEL_Y_WIDTH_PX;
+    const FRAME_OFFSET_Y = MARGIN_PX;
+    const BAR_WIDTH = 40;
+    const BAR_INTERVAL = 80;
+    const BAR_OFFSET = 20;
+    const BAR_COLOR = "blue";
+
+    let canvas = null;
+    let ctx = null;
+    /**
+     * @type {{
+     *   rowTitles: string[];
+     *   columnTitles: string[];
+     *   values: number[][];
+     * }}
+     */
+    let data;
+    let selectedType = 0;
+
+    let isMouseDown = false;
+    let pointerX = 0;
+
+    async function init() {
+      initializeCanvas();
+      await loadCSV("./data/motorcycle-sales-trends.csv");
+      initializeSelectType();
+      initializeEvents();
+      draw();
+    }
+
+    function initializeCanvas() {
+      canvas = document.getElementById("canvas");
+      if (canvas === null || !(canvas instanceof HTMLCanvasElement)) {
+        throw new Error("canvasが取得できません");
+      }
+      ctx = canvas.getContext("2d");
+      if (ctx === null) {
+        throw new Error("2dコンテキストが取得できません");
+      }
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = CANVAS_HEIGHT;
+      canvas.style.visibility = "visible";
+    }
+
+    async function loadCSV(path) {
+      const res = await fetch(path);
+      const text = await res.text();
+
+      const rowTitles = text.split("\n")[0].split(",").slice(1);
+      const columnTitles = text
+        .split("\n")
+        .slice(1)
+        .map((line) => line.split(",")[0]);
+      const values = text
+        .split("\n")
+        .slice(1)
+        .map((line) =>
+          line
+            .split(",")
+            .slice(1)
+            .map((v) => parseInt(v))
+        );
+
+      data = {
+        rowTitles,
+        columnTitles,
+        values,
+      };
+    }
+
+    function initializeSelectType() {
+      let selectType = document.getElementById("select-type");
+      if (selectType === null) {
+        throw new Error("select-typeが取得できません");
+      }
+      if (selectType instanceof HTMLSelectElement) {
+        selectType.addEventListener("change", (e) => {
+          // @ts-ignore
+          selectedType = parseInt(e.target.value);
+          draw();
+        });
+        for (let i = 0; i < data.rowTitles.length; i++) {
+          let option = document.createElement("option");
+          option.value = i.toString();
+          option.text = data.rowTitles[i];
+          selectType.appendChild(option);
+        }
+      }
+    }
+
+    function initializeEvents() {
+      canvas.addEventListener("pointerdown", onPointerDown);
+      canvas.addEventListener("pointerup", onPointerUp);
+      canvas.addEventListener("pointermove", onPointerMove);
+    }
+
+    function onPointerDown(e) {
+      isMouseDown = true;
+    }
+
+    function onPointerUp(e) {
+      isMouseDown = false;
+    }
+
+    function onPointerMove(e) {
+      if (isMouseDown) {
+        pointerX = Math.min(
+          Math.max(
+            pointerX + e.movementX,
+            data.values[0].length * -BAR_INTERVAL
+          ),
+          0
+        );
+        draw();
+      }
+    }
+
+    function draw() {
+      // キャンバスをクリア
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // フレームを描画
+      ctx.strokeRect(FRAME_OFFSET_X, FRAME_OFFSET_Y, FRAME_WIDTH, FRAME_HEIGHT);
+
+      // 棒グラフを描画
+      const maxValue = Math.max(...data.values.map((row) => row[selectedType]));
+
+      for (let i = 0; i < data.columnTitles.length; i++) {
+        const x = FRAME_OFFSET_X + BAR_INTERVAL * i + BAR_OFFSET + pointerX;
+        const y =
+          FRAME_OFFSET_Y +
+          FRAME_HEIGHT -
+          (FRAME_HEIGHT * data.values[i][selectedType]) / maxValue;
+        const barHeight =
+          (FRAME_HEIGHT * data.values[i][selectedType]) / maxValue;
+        ctx.fillStyle = BAR_COLOR;
+        ctx.fillRect(x, y, BAR_WIDTH, barHeight);
+      }
+
+      // ラベルを描画
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      for (let i = 0; i < data.columnTitles.length; i++) {
+        const x =
+          FRAME_OFFSET_X +
+          BAR_INTERVAL * i +
+          BAR_OFFSET +
+          BAR_WIDTH / 2 +
+          pointerX;
+        const y = FRAME_OFFSET_Y + FRAME_HEIGHT + 5;
+        ctx.fillText(data.columnTitles[i], x, y);
+      }
+
+      // フレームからはみ出た棒グラフを削除
+      ctx.clearRect(0, 0, FRAME_OFFSET_X, CANVAS_HEIGHT);
+      ctx.clearRect(
+        FRAME_OFFSET_X + FRAME_WIDTH,
+        0,
+        CANVAS_WIDTH - FRAME_OFFSET_X - FRAME_WIDTH,
+        CANVAS_HEIGHT
+      );
+
+      // 軸ラベルを描画
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      const digit = maxValue.toString().length;
+      const roundedMaxValue =
+        Math.ceil(maxValue / Math.pow(10, digit - 1)) * Math.pow(10, digit - 1);
+      for (let i = 0; i <= 5; i++) {
+        const x = FRAME_OFFSET_X - 5;
+        const y =
+          FRAME_OFFSET_Y +
+          FRAME_HEIGHT -
+          (FRAME_HEIGHT * (roundedMaxValue / 5) * i) / maxValue;
+        ctx.fillText(((roundedMaxValue / 5) * i).toString(), x, y);
+      }
+    }
+  </script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>課題</title>
+  </head>
+  <body onload="init()">
+    <div>
+      <canvas id="canvas" style="visibility: hidden"></canvas>
+    </div>
+    <div>
+      <select id="select-type"></select>
+    </div>
+  </body>
+</html>
